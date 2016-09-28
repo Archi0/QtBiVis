@@ -3,22 +3,24 @@
 
 #include <iostream>
 MainWindow::MainWindow(QWidget *parent)
-    : QWidget(parent)
+    : QWidget(parent),
+      rowC(0),
+      colC(0),
+      percVals(NULL)
 {
     resize(1024,768);
     setWindowTitle(tr("QtBiVis"));
-    percVals = NULL;
     m_plValues = new QList<QStringList>();
-    m_pvData = new QVector<TileData* >();
+    m_pvData = new QVector<CellData* >();
     m_pMainLayout = new QGridLayout(this);
     m_pMainLayout->addWidget(createPathGroup(),0,0,1,1);
     m_pMainLayout->addWidget(createPaintGroup(),1,0,1,2);
     m_plBiclusters = new QStringList();
     m_plRowNames = new QStringList();
     m_plColNames = new QStringList();
-    m_pvData = new QVector<TileData*>(0);
-    m_pmCountMap = new QMap<int, QVector<TileData*> >();
-    m_pmCellMap = new QMap<QString, TileData*>();
+    m_pvData = new QVector<CellData*>(0);
+    m_pmCountMap = new QMap<int, QVector<CellData*> >();
+    m_pmCellMap = new QMap<QString, CellData*>();
     m_pmGOMap = new QMap<QString, QStringList>();
     m_bicWin = new qBicWin();
     connect(m_pbtnBrowse, SIGNAL(clicked()), this, SLOT(browseFile()));
@@ -69,6 +71,8 @@ void MainWindow::prepareTableView()
     labels.append("pvalue:");
     labels.append("pvalue 2:");
     labels.append("Bicluster:");
+    qDebug() << "Bics: " << QString::number(m_plBiclusters->size());
+    qDebug() << "GO: " << QString::number(m_pmGOMap->size());
     for(int i =0; i< m_plBiclusters->size(); i++)
     {
         QStringList gostats = (*m_pmGOMap)[(*m_plBiclusters)[i]];
@@ -77,7 +81,7 @@ void MainWindow::prepareTableView()
         bicluster=(*m_plBiclusters)[i];
         if(gostats.size()>0)
         {
-            QStringList temp = gostats[0].split(",");
+            QStringList temp = gostats[0].split(" ");
             go=temp[0];
             pval1 = temp[1];
             pval2 = temp[2];
@@ -93,7 +97,7 @@ void MainWindow::prepareTableView()
         m_psmBicListModel->setHorizontalHeaderLabels(labels);
     }
 }
-bool MainWindow::find(TileData *input, QString Bic)
+bool MainWindow::find(CellData *input, QString Bic)
 {
     if(m_pmCellMap->contains(input->sCoords))
     {
@@ -107,7 +111,7 @@ bool MainWindow::find(TileData *input, QString Bic)
     }
 }
 
-bool MainWindow::findBic(TileData *input)
+bool MainWindow::findBic(CellData *input)
 {
     /*if(m_pmBiclusterMap->contains(input->sBicluster))
     {
@@ -229,7 +233,7 @@ void MainWindow::browseFile()
                 sBicluster = rows.join(" ")+ "|" + cols.join(" ");
 
             }
-            TileData* input = new TileData();
+            CellData* input = new CellData();
             if(!m_plBiclusters->contains(sBicluster))
             {
                for( int nEle = 0; nEle < rows.size();nEle++)
@@ -239,7 +243,7 @@ void MainWindow::browseFile()
                         input->sCoords = rows[nEle] + "," +cols[nCol];
                         if(!find(input,sBicluster))
                         {
-                            m_pvData->append(new TileData());
+                            m_pvData->append(new CellData());
                             (*m_pvData)[m_pvData->size()-1]->nCounts = 1;
                             (*m_pvData)[m_pvData->size()-1]->sBicluster.append(sBicluster);
                             (*m_pvData)[m_pvData->size()-1]->sCoords = input->sCoords;
@@ -247,7 +251,7 @@ void MainWindow::browseFile()
                             m_pmCellMap->insert((*m_pvData)[m_pvData->size()-1]->sCoords,(*m_pvData)[m_pvData->size()-1]);
                         }
                         delete input;
-                        input = new TileData();
+                        input = new CellData();
                     }
                 }
                 m_plBiclusters->append(sBicluster);
@@ -364,14 +368,13 @@ void MainWindow::percStats()
     boost::dynamic_bitset<>** colsB = new boost::dynamic_bitset<>*[m_plBiclusters->size()];
     QElapsedTimer timer;
     timer.start();
-
     for(int i = 0; i < m_plBiclusters->size(); i++)
     {
         QStringList list = m_plBiclusters->at(i).split("|");
         QStringList rows = list[0].split(QRegExp("\\s+"));
         QStringList cols = list[1].split(QRegExp("\\s+"));
-        rowsB[i] = new boost::dynamic_bitset<>(m_plRowNames->size()+1);
-        colsB[i] = new boost::dynamic_bitset<>(m_plColNames->size()+1);
+        rowsB[i] = new boost::dynamic_bitset<>(rowC+1);
+        colsB[i] = new boost::dynamic_bitset<>(colC+1);
         percVals[i] = new double[m_plBiclusters->size()];
         for(int j=0; j< m_plBiclusters->size();j++)
             percVals[i][j] = 0;
@@ -397,11 +400,11 @@ void MainWindow::percStats()
 
                     if(i!=k)
                     {
-                        boost::dynamic_bitset<> commonRows(m_plValues->size()+1);
+                        boost::dynamic_bitset<> commonRows(rowC+1);
                         commonRows = (*rowsB[i]) & (*rowsB[k]);
                             if(commonRows.count() > 0)
                             {
-                                 boost::dynamic_bitset<> commonCols((*m_plValues)[0].size()+1);
+                                 boost::dynamic_bitset<> commonCols(colC+1);
                                  commonCols = (*colsB[i]) & (*colsB[k]);
                                         if(commonCols.count() > 0)
                                         {
@@ -521,23 +524,29 @@ void MainWindow::testStats()
                 stream << occ << endl;
             }
         }*/
-        stream << "---------------------------------------" << endl;
+       // stream << "---------------------------------------" << endl;
         for(int i=0;i<m_plBiclusters->size();i++)
         {
-            //if(!index.contains(i))
+           // if(!index.contains(i))
             {
-                stream << (*m_plBiclusters)[i] << endl;
+
                  int occ = 0;
                 for(int f=0;f < m_plBiclusters->size();f++)
                 {
                     if(percVals[i][f]>0.25)
                     {
-                        stream << percVals[i][f] << ",";
                         occ++;
                     }
                 }
-                stream << endl;
-                stream << occ << endl;
+                if(occ == 0)
+                {
+                    stream << (*m_plBiclusters)[i] << endl;
+                    stream << (*m_pmGOMap)[(*m_plBiclusters)[i]].at(0)<<endl;
+                   // stream << percVals[i][f] << ",";
+                    //stream << endl;
+                    //stream << occ << endl;
+                }
+
             }
         }
     }
@@ -546,6 +555,7 @@ void MainWindow::testStats()
 
 void MainWindow::browseMainFile()
 {
+
     QString fileName = QFileDialog::getOpenFileName(this, tr("Open Data"), "./", tr(""));
     QFile dataFile(fileName);
 
@@ -555,10 +565,12 @@ void MainWindow::browseMainFile()
     m_plValues->clear();
     QTextStream in(&dataFile);    
     QString line = in.readLine();
-    QStringList list = line.split(QRegExp("\\s+"));
-    QRegExp re("[-+]?[0-9]*\\.?[0-9]+.");  // a digit (\d), zero or more times (*)
-    if (re.exactMatch(list[0]))
+    rowC=colC=0;
+    if(line.count(" ")==1)
     {
+        QStringList list = line.split(QRegExp("\\s+"));
+        rowC = list[0].toInt();
+        colC = list[1].toInt();
         line = in.readLine();
         while(!line.isNull())
         {
@@ -568,17 +580,36 @@ void MainWindow::browseMainFile()
     }
     else
     {
-            m_plColNames->append(list);
-        line = in.readLine();
+        QStringList list = line.split(QRegExp("\\s+"));
+        colC=list.size();
         while(!line.isNull())
         {
-            list = line.split(QRegExp("\\s+"));
-            m_plRowNames->append(list[0]);
-            m_plValues->append(list.mid(1));
+            m_plValues->append(line.split(QRegExp("\\s+")));
             line=in.readLine();
-
+            rowC++;
         }
     }
+
+
+   // QRegExp re("[-+]?[0-9]*\\.?[0-9]+.");  // a digit (\d), zero or more times (*)
+    //if (re.exactMatch(list[0]))
+    {
+
+
+    }
+   // else
+   // {
+    //        m_plColNames->append(list);
+    //    line = in.readLine();
+    //    while(!line.isNull())
+     //   {
+     //       list = line.split(QRegExp("\\s+"));
+     //       m_plRowNames->append(list[0]);
+     //       m_plValues->append(list.mid(1));
+       //     line=in.readLine();
+
+       // }
+   // }
     dataFile.close();
     m_pbtnBrowse->setEnabled(true);
 }
@@ -739,7 +770,7 @@ void MainWindow::select(QMouseEvent* event)
             std::stringstream stream;
             stream << y << "," << x;
            // m_ptxtConsole->append(stream.str().c_str());
-            TileData* selectedData = (*m_pmCellMap)[QString(stream.str().c_str())];
+            CellData* selectedData = (*m_pmCellMap)[QString(stream.str().c_str())];
             if(selectedData!=NULL)
             {
                 for(int i=0; i<selectedData->sBicluster.size();i++)

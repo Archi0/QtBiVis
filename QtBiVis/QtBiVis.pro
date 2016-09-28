@@ -14,7 +14,6 @@ TEMPLATE = app
 
 SOURCES += main.cpp\
         mainwindow.cpp \
-    ccell.cpp \
     qbiclusterwindow.cpp \
     qcustomplot.cpp \
     common.cpp \
@@ -26,7 +25,6 @@ SOURCES += main.cpp\
     qparallelplot.cpp
 
 HEADERS  += mainwindow.h \
-    ccell.h \
     qbiclusterwindow.h \
     common.h \
     qcustomplot.h \
@@ -38,4 +36,4 @@ HEADERS  += mainwindow.h \
     qparallelplot.h
 QT += printsupport
 
-INCLUDEPATH += "D:\Programowanie\boost_1_60_0"
+INCLUDEPATH += "E:\Programowanie\boost_1_60_0"

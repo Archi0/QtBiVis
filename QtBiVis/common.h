@@ -4,7 +4,8 @@
 #include <QVector>
 #include <stdlib.h>
 #include "qcustomplot.h"
-struct TileData
+
+struct CellData
 {
     QList<QString> sBicluster;
     QString sValue;

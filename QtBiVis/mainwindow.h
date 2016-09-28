@@ -62,8 +62,8 @@ public slots:
     void setGoText(QString text);
 private:
 
-    bool find(TileData* input, QString Bic);
-    bool findBic(TileData* input);
+    bool find(CellData* input, QString Bic);
+    bool findBic(CellData* input);
     void generateCountMap();
     void clearPerc();
     void clearData();
@@ -89,12 +89,12 @@ private:
     //QGroupBox* m_pVisualGroup;
    // QGroupBox* m_pInfoGroup;
     QGridLayout* m_pMainLayout;
-    QVector<TileData* >* m_pvData;
+    QVector<CellData* >* m_pvData;
     QStringList* m_plBiclusters;
-    QMap<int,QVector<TileData*> >* m_pmCountMap;
+    QMap<int,QVector<CellData*> >* m_pmCountMap;
     QStringList* m_plRowNames;
     QStringList* m_plColNames;
-   QMap<QString, TileData*>* m_pmCellMap;
+   QMap<QString, CellData*>* m_pmCellMap;
     QMap<QString, QStringList>* m_pmGOMap;
     QGroupBox* createPaintGroup();
     QToolBar *createPathGroup();
@@ -102,6 +102,8 @@ private:
     QCPColorMap *colorMap;
     qBicWin* m_bicWin;
     qGoFilter* goFilter;
+    int rowC;
+    int colC;
 };
 
 #endif // MAINWINDOW_H

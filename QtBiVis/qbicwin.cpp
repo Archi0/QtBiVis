@@ -95,18 +95,25 @@ void qBicWin::init(double **perc, QList<QStringList> *vals, QString Bic, QString
     QStringList colLabels;
     //rowLabels.append("");
     //colLabels.append("");
-    for(int i=0; i<rows.size(); i++)
+    if(rowNames->size()> 0)
     {
-        //QStandardItem *item = new QStandardItem((*rowNames)[rows[i].toInt()]);
-       // m_pValModel->setItem(i+1, 0, item);
-        rowLabels.append((*rowNames)[rows[i].toInt()]);
+        for(int i=0; i<rows.size(); i++)
+        {
+            //QStandardItem *item = new QStandardItem((*rowNames)[rows[i].toInt()]);
+           // m_pValModel->setItem(i+1, 0, item);
+            rowLabels.append((*rowNames)[rows[i].toInt()]);
+        }
     }
-    for(int i=0;i <cols.size(); i++)
+    if(colNames->size()>0)
     {
-        //QStandardItem *item = new QStandardItem((*colNames)[cols[i].toInt()]);
-       // m_pValModel->setItem(0, i+1, item);
-        colLabels.append((*colNames)[cols[i].toInt()]);
+        for(int i=0;i <cols.size(); i++)
+        {
+            //QStandardItem *item = new QStandardItem((*colNames)[cols[i].toInt()]);
+           // m_pValModel->setItem(0, i+1, item);
+            colLabels.append((*colNames)[cols[i].toInt()]);
+        }
     }
+
     m_pValModel->setHorizontalHeaderLabels(colLabels);
     m_pValModel->setVerticalHeaderLabels(rowLabels);
     for(int i=0; i<rows.size(); i++)
@@ -165,7 +172,7 @@ void qBicWin::init(double **perc, QList<QStringList> *vals, QString Bic, QString
             QString go, pval1,pval2;
             go=pval1=pval2="";
 
-            QStringList temp = (*m_plGoStats)[i].split(",");
+            QStringList temp = (*m_plGoStats)[i].split(" ");
             go=temp[0];
             pval1 = temp[1];
             pval2 = temp[2];
