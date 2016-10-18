@@ -2,6 +2,11 @@
 #include <boost/dynamic_bitset.hpp>
 
 #include <iostream>
+
+int MainWindow::gradientType = 100;
+int MainWindow::dataScaleType = 0;
+
+
 MainWindow::MainWindow(QWidget *parent)
     : QWidget(parent),
       rowC(0),
@@ -34,6 +39,7 @@ MainWindow::MainWindow(QWidget *parent)
     //connect(m_pbtnSigma, SIGNAL(clicked()), this, SLOT(calcSaveSigma()));
     connect(m_pbtnParser, SIGNAL(clicked()), this, SLOT(testStats()));
     connect(m_pleGoDef, SIGNAL(textChanged(QString)), this, SLOT(setGoText(QString)));
+    connect(m_pbtnHeatSett, SIGNAL(clicked()),this, SLOT(setOptions()));
    // connect(plot->xAxis, SIGNAL(rangeChanged(QCPRange)), this, SLOT(setRange(QCPRange)));
    // connect(m_pBiclusterWin, SIGNAL(closed()), this, SLOT(closeBiclusterWin()));
     setLayout(m_pMainLayout);
@@ -56,9 +62,6 @@ void MainWindow::clearPerc()
 
 void MainWindow::clearData()
 {
-    if(colorMap!=NULL)
-        colorMap->clearData();
-    plot->clearPlottables();
     plot->replot();
 }
 
@@ -566,27 +569,65 @@ void MainWindow::browseMainFile()
     QTextStream in(&dataFile);    
     QString line = in.readLine();
     rowC=colC=0;
+    QRegExp re("[-+]?[0-9]*\\.?[0-9]+.");  // a digit (\d), zero or more times (*)
+    line = line.simplified();
     if(line.count(" ")==1)
     {
+
         QStringList list = line.split(QRegExp("\\s+"));
         rowC = list[0].toInt();
         colC = list[1].toInt();
         line = in.readLine();
-        while(!line.isNull())
+        list = line.split(QRegExp("\\s+"));
+        if (re.exactMatch(list[0]))
         {
-            m_plValues->append(line.split(QRegExp("\\s+")));
-            line=in.readLine();
+            while(!line.isNull())
+            {
+                m_plValues->append(line.split(QRegExp("\\s+")));
+                line=in.readLine();
+            }
         }
+        else
+        {
+            m_plColNames->append(list);
+            line = in.readLine();
+            while(!line.isNull())
+            {
+               list = line.split(QRegExp("\\s+"));
+               m_plRowNames->append(list[0]);
+               m_plValues->append(list.mid(1));
+               line=in.readLine();
+            }
+
+        }
+
     }
     else
     {
         QStringList list = line.split(QRegExp("\\s+"));
         colC=list.size();
-        while(!line.isNull())
+        if (re.exactMatch(list[0]))
         {
-            m_plValues->append(line.split(QRegExp("\\s+")));
-            line=in.readLine();
-            rowC++;
+            while(!line.isNull())
+            {
+                m_plValues->append(line.split(QRegExp("\\s+")));
+                line=in.readLine();
+                rowC++;
+            }
+        }
+        else
+        {
+            m_plColNames->append(list);
+            line = in.readLine();
+            while(!line.isNull())
+            {
+               list = line.split(QRegExp("\\s+"));
+               m_plRowNames->append(list[0]);
+               m_plValues->append(list.mid(1));
+               line=in.readLine();
+               rowC++;
+            }
+
         }
     }
 
@@ -612,6 +653,8 @@ void MainWindow::browseMainFile()
    // }
     dataFile.close();
     m_pbtnBrowse->setEnabled(true);
+    drawHeatmap();
+    m_pbtnHeatSett->setEnabled(true);
 }
 
 void MainWindow::openBiclusterWin()
@@ -622,14 +665,15 @@ void MainWindow::openBiclusterWin()
 }
 void MainWindow::draw()
 {
-
+    plot->xAxis->scaleRange(0.5);
+/*
     plot->xAxis->setLabel("cols");
     plot->yAxis->setLabel("rows");
     // set axes ranges, so we see all data:
     if(m_plValues->size()>0)
     {
-        plot->xAxis->setRange(0, (*m_plValues)[0].size());
-        plot->yAxis->setRange(0, m_plValues->size());
+        plot->xAxis->setRange(0, colC);
+        plot->yAxis->setRange(0, rowC);
         plot->xAxis->setNumberFormat("f");
         plot->yAxis->setNumberFormat("f");
         plot->xAxis->setNumberPrecision(0);
@@ -640,7 +684,7 @@ void MainWindow::draw()
         colorMap->setValueAxis(plot->yAxis);
         colorMap->data()->setSize((*m_plValues)[0].size(),m_plValues->size());
         colorMap->data()->setRange(QCPRange(0, (*m_plValues)[0].size()),QCPRange(0, m_plValues->size()));
-        QCPColorGradient* grad = new QCPColorGradient();
+        QCPColorGradient* grad = new QCPColorGradient(QCPColorGradient::gpCold);
         grad->clearColorStops();
         grad->setColorStopAt(0,Qt::white);
         grad->setColorStopAt(1, QColor(155,0,0,255));
@@ -649,6 +693,8 @@ void MainWindow::draw()
         colorMap->setTightBoundary(false);
         colorMap->setInterpolate(false);
         colorMap->data()->fill(0);
+        colorMap->data()->recalculateDataBounds();
+
         for(int nV =0;nV<m_plValues->size();nV++)
         {
             QStringList row = (*m_plValues)[nV];
@@ -658,31 +704,24 @@ void MainWindow::draw()
                 if(m_pmCellMap->contains(coord))
                 {
                     colorMap->data()->setCell(nC, nV, (*m_pmCellMap)[coord]->nCounts);
-
                 }
             }
         }
 
-        colorMap->data()->recalculateDataBounds();
         colorMap->rescaleDataRange(true);
-        colorMap->setSelectable(true);
 
         QCPColorScale *colorScale = new QCPColorScale(plot);
-        colorScale->axis()->setAutoTicks(1);
         colorScale->setGradient(*grad);
         colorScale->setDataRange(colorMap->dataRange());
         colorScale->setDataScaleType(colorMap->dataScaleType());
         QCPMarginGroup *group = new QCPMarginGroup(plot);
         colorScale->setMarginGroup(QCP::msTop|QCP::msBottom, group);
         plot->axisRect()->setMarginGroup(QCP::msTop|QCP::msBottom, group);
-        plot->plotLayout()->addElement(0, 1, colorScale);
-        if(!plot->hasPlottable(colorMap))
-        {
-            plot->addPlottable(colorMap);
-        }
+        plot->plotLayout()->addElement(0,1,colorScale);
         plot->replot();
     }
     // m_ptxtConsole->append(stream.str().c_str());
+    */
 }
 
 void MainWindow::selectedList(QModelIndex index)
@@ -702,7 +741,7 @@ void MainWindow::selectedList(QModelIndex index)
           // drawBicluster(slist[0]);
        }
 
-        m_bicWin->init(percVals,m_plValues,slist.last(),m_plRowNames, m_plColNames, m_plBiclusters, &(*m_pmGOMap)[slist.last()]);
+        m_bicWin->init(percVals,m_plValues,slist.last(),m_plRowNames, m_plColNames, m_plBiclusters, &(*m_pmGOMap)[slist.last()], rowC, colC);
         m_bicWin->show();
    }
 
@@ -717,7 +756,7 @@ void MainWindow::drawBicluster(QString Bicluster)
     plot->graph()->setLayer("graphLayer");
     plot->moveLayer(plot->layer("graphLayer"),plot->layer("main"));*/
     plot->addLayer("select",plot->layer("grid"));
-    QCPColorGradient *grad = new QCPColorGradient();
+    QCPColorGradient *grad = new QCPColorGradient(QCPColorGradient::gpCold);
     grad->clearColorStops();
     grad->setColorStopAt(0, QColor(255,255,255,10));
     grad->setColorStopAt(1, QColor(0,0,0,255));
@@ -753,9 +792,59 @@ void MainWindow::drawBicluster(QString Bicluster)
     }
     Map->data()->recalculateDataBounds();
     Map->rescaleDataRange(true);
-    plot->addPlottable(Map);
     plot->replot();
     //colorMap->setVisible(false);
+}
+
+void MainWindow::drawHeatmap()
+{
+    //plot->xAxis->setLabel("Columns");
+    //plot->yAxis->setLabel("Rows");
+    // set axes ranges, so we see all data:
+    if(m_plValues->size()>0)
+    {
+        plot->xAxis->setRange(0, colC);
+        plot->yAxis->setRange(0, rowC*colC);
+        plot->yAxis->setRangeReversed(true);
+        plot->xAxis->setNumberFormat("f");
+        plot->yAxis->setNumberFormat("f");
+        plot->xAxis->setNumberPrecision(0);
+        plot->yAxis->setNumberPrecision(0);
+
+      //  plot->axisRect()->setRangeZoom(Qt::Vertical);
+       //plot->axisRect()->setRangeDrag(Qt::Vertical);
+        colorMap->data()->setSize(colC,rowC);
+        colorMap->data()->setRange(QCPRange(0, colC),QCPRange(0,rowC));
+        QCPColorGradient* grad = new QCPColorGradient(QCPColorGradient::gpSpectrum);
+        grad->clearColorStops();
+        grad->setColorStopAt(0,Qt::red);
+        grad->setColorStopAt(0.5,Qt::black);
+        grad->setColorStopAt(1, Qt::green);
+        grad->setColorInterpolation(QCPColorGradient::ciRGB);
+        colorMap->setGradient(*grad);
+        colorMap->setTightBoundary(true);
+        colorMap->setInterpolate(false);
+        colorMap->data()->fill(0);
+        colorMap->setDataScaleType(QCPAxis::ScaleType::stLogarithmic);
+        for(int nV =0;nV<m_plValues->size();nV++)
+        {
+            QStringList row = (*m_plValues)[nV];
+            for(int nC = 0; nC<row.size();nC++)
+            {
+                QString value = row.at(nC);
+                colorMap->data()->setCell(nC, nV, value.toDouble());
+            }
+        }
+        colorMap->rescaleDataRange(true);
+
+        colorScale->setGradient(*grad);
+        colorScale->setDataRange(colorMap->dataRange());
+        colorScale->setDataScaleType(colorMap->dataScaleType());
+
+        plot->xAxis->setRange(0, 100);
+        plot->yAxis->setRange(0, 100);
+        plot->replot();
+    }
 }
 
 void MainWindow::select(QMouseEvent* event)
@@ -797,25 +886,81 @@ void MainWindow::setGoText(QString text)
     goFilter->setGo(text);
     goFilter->invalidate();
 }
+
+void MainWindow::setOptions()
+{
+    optDialog = new OptionsDialog();
+    optDialog->setGradientType(gradientType);
+    optDialog->setDataScaleType(dataScaleType);
+    optDialog->exec();
+    if(optDialog->getStatus())
+    {
+        QCPColorGradient* grad;
+        if(optDialog->getGradientType()!=100)
+        {
+            grad = new QCPColorGradient((QCPColorGradient::GradientPreset)optDialog->getGradientType());
+        }
+        else
+        {
+            grad = new QCPColorGradient(QCPColorGradient::gpSpectrum);
+            grad->clearColorStops();
+            grad->setColorStopAt(0,Qt::red);
+            grad->setColorStopAt(0.5,Qt::black);
+            grad->setColorStopAt(1, Qt::green);
+            grad->setColorInterpolation(QCPColorGradient::ciRGB);
+
+        }
+        gradientType=optDialog->getGradientType();
+        dataScaleType=optDialog->getDataScaleType();
+        colorMap->setGradient(*grad);
+
+
+        if(optDialog->getDataScaleType()==0)
+            colorMap->setDataScaleType(QCPAxis::ScaleType::stLogarithmic);
+        else
+            colorMap->setDataScaleType(QCPAxis::ScaleType::stLinear);
+        colorMap->rescaleDataRange(true);
+        colorScale->setGradient(*grad);
+        colorScale->setDataRange(colorMap->dataRange());
+        colorScale->setDataScaleType(colorMap->dataScaleType());
+
+    }
+    delete optDialog;
+    plot->replot();
+}
+
 QGroupBox* MainWindow::createPaintGroup()
 {
     QGridLayout* grid = new QGridLayout;
     QGroupBox* gb = new QGroupBox();
     QGroupBox* valGb = new QGroupBox(tr("Bicluster Values"));
-    QGroupBox* percGb = new QGroupBox(tr("Occurances heatmap"));
-    percGb->setMinimumWidth(500);
+    QGroupBox* percGb = new QGroupBox(tr("Heatmap"));
+    percGb->setMinimumWidth(550);
     QGridLayout* valGrid = new QGridLayout();
     QGridLayout* percGrid = new QGridLayout();
-
+    QSplitter* splitter = new QSplitter();
     plot = new QCustomPlot(this);
-    plot->setMinimumWidth(300);
+    plot->setMinimumWidth(500);
     plot->setInteractions(QCP::iRangeZoom|QCP::iRangeDrag);
     colorMap = new QCPColorMap(plot->xAxis,plot->yAxis);
-    colorMap->clearData();
+    colorMap->data()->fill(0);
+
+    colorScale = new QCPColorScale(plot);
+    QCPMarginGroup *group = new QCPMarginGroup(plot);
+    colorScale->setMarginGroup(QCP::msTop|QCP::msBottom, group);
+    plot->axisRect()->setMarginGroup(QCP::msTop|QCP::msBottom, group);
+    plot->plotLayout()->addElement(0,1,colorScale);
+    plot->replot();
+
+    QPushButton* m_pbtnRowPlus;
+    QPushButton* m_pbtnRowMinus;
+    QPushButton* m_pbtnColPlus;
+    QPushButton* m_pbtnColMinus;
+
     m_pleGoDef = new QLineEdit();
     m_pbtnStats = new QPushButton(tr("Stats"));
     m_plvBicList = new QTableView(this);
-    m_plvBicList->setMinimumWidth(350);
+    m_plvBicList->setMinimumWidth(300);
     m_plvBicList->horizontalHeader()->setStretchLastSection(true);
     m_plvBicList->setSortingEnabled(true);
     m_pslBicStrList = new QStringList();
@@ -831,8 +976,11 @@ QGroupBox* MainWindow::createPaintGroup()
     valGrid->addWidget(m_pleGoDef, 1,1,1,1);
     valGb->setLayout(valGrid);
     percGb->setLayout(percGrid);
-    grid->addWidget(percGb,0,0,1,1);
-    grid->addWidget(valGb, 0,1,1,1);
+
+    splitter->addWidget(percGb);
+    splitter->addWidget(valGb);
+    grid->addWidget(splitter,0,0,1,2);
+    //grid->addWidget(valGb, 0,1,1,1);
     gb->setLayout(grid);
     return gb;
 }
@@ -860,13 +1008,17 @@ QToolBar *MainWindow::createPathGroup()
     m_pbtnParser->setFixedHeight(50);
     m_pbtnParser->setDisabled(true);
 
+    m_pbtnHeatSett = new QPushButton(tr("Heatmap Settings"), this);
+    m_pbtnHeatSett->setFixedHeight(50);
+    m_pbtnHeatSett->setDisabled(true);
+
     tools->addWidget(m_pbtnBrowseMain);
     tools->addWidget(m_pbtnBrowse);
+    tools->addWidget(m_pbtnHeatSett);
+    tools->addSeparator();
     tools->addWidget(m_pbtnCalc);
     tools->addWidget(m_pbtnParser);
     tools->addWidget(m_pbtnMore);
-
-    //tools->addWidget(m_pbtnSigma);
     tools->addWidget(m_pbtnDraw);
    // m_ptxtConsole = new QTextEdit(this);
   //  m_ptxtConsole->setReadOnly(true);

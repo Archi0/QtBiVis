@@ -39,8 +39,7 @@ void qBicStats::setData(double **values, QList<QString>* biclusters, int index)
    }
    plot->xAxis->setLabel("Coverage value");
    plot->yAxis->setLabel("Occurance");
-   plot->yAxis->setAutoTickStep(false);
-   plot->yAxis->setTickStep(1.0);
+
    float max = *std::max_element(x.begin(), x.end());
    float max2 = *std::max_element(y.begin(), y.end());
    plot->xAxis->setRange(0, max+0.1);

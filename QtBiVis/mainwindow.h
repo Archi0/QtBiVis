@@ -30,6 +30,7 @@
 #include <QTableView>
 #include <QPixmap>
 #include <sstream>
+#include <QSplitter>
 #include <QStandardItemModel>
 #include "ccell.h"
 #include "qbiclusterwindow.h"
@@ -38,6 +39,7 @@
 #include "qbicstats.h"
 #include "common.h"
 #include "qbicwin.h"
+#include "optionsdialog.h"
 class MainWindow : public QWidget
 {
     Q_OBJECT
@@ -45,10 +47,13 @@ class MainWindow : public QWidget
 public:
     MainWindow(QWidget *parent = 0);
     ~MainWindow();
+    static int gradientType;
+    static int dataScaleType;
 public slots:
     void draw();
     void selectedList(QModelIndex index);
     void drawBicluster(QString Bicluster);
+    void drawHeatmap();
     void browseFile();
     void showStats();
     void quantityStats();
@@ -60,6 +65,7 @@ public slots:
     void select(QMouseEvent* event);
     void setRange(QCPRange newRange);
     void setGoText(QString text);
+    void setOptions();
 private:
 
     bool find(CellData* input, QString Bic);
@@ -77,6 +83,11 @@ private:
     QPushButton* m_pbtnParser;
     QPushButton* m_pbtnDraw;
     QPushButton* m_pbtnStats;
+    QPushButton* m_pbtnHeatSett;
+    QPushButton* m_pbtnRowPlus;
+    QPushButton* m_pbtnRowMinus;
+    QPushButton* m_pbtnColPlus;
+    QPushButton* m_pbtnColMinus;
     QLineEdit* m_peSourcePath;
     QLineEdit* m_pleGoDef;
     QLabel* m_plblSourceMain;
@@ -100,8 +111,11 @@ private:
     QToolBar *createPathGroup();
     QList<QStringList>* m_plValues;
     QCPColorMap *colorMap;
+    QCPColorScale *colorScale;
     qBicWin* m_bicWin;
+    OptionsDialog* optDialog;
     qGoFilter* goFilter;
+
     int rowC;
     int colC;
 };

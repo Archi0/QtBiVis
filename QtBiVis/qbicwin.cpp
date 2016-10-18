@@ -1,6 +1,7 @@
 #include "qbicwin.h"
 #include "qsigmawindow.h"
 #include "qbicstats.h"
+#include "mainwindow.h"
 
 qBicWin::qBicWin(QWidget *parent) : QWidget(parent)
 {
@@ -10,6 +11,8 @@ qBicWin::qBicWin(QWidget *parent) : QWidget(parent)
     QGroupBox* percGb = new QGroupBox(tr("Neighbourhood"));
     QGridLayout* valGrid = new QGridLayout();
     QGridLayout* percGrid = new QGridLayout();
+    QSplitter* splitter = new QSplitter();
+
     m_pbtnOkButton = new QPushButton(tr("Ok"));
     m_pbtnOkButton->setFixedHeight(50);
     m_pbtnParallel = new QPushButton(tr("Parallel Coords"));
@@ -18,34 +21,52 @@ qBicWin::qBicWin(QWidget *parent) : QWidget(parent)
     m_pbtnStats->setFixedHeight(50);
     m_pbtnPerc = new QPushButton(tr("Coverage"));
     m_pbtnPerc->setFixedHeight(50);
+    m_pbtnSort = new QPushButton(tr("Sort"));
+    m_pbtnSort->setFixedHeight(50);
+
     m_ptbValView = new QTableView();
     m_ptbValView->horizontalHeader()->setStretchLastSection(true);
     valGb->setMinimumWidth(400);
     m_ptbPercView = new QTableView();
     m_ptbPercView->horizontalHeader()->setStretchLastSection(true);
-    percGb->setMaximumWidth(400);
+  //  percGb->setMaximumWidth(400);
     m_ptbGoView = new QTableView();
     m_ptbGoView->horizontalHeader()->setStretchLastSection(true);
     m_ptbGoView->setMaximumHeight(200);
     m_pValModel = new QStandardItemModel();
     m_pPercModel = new QStandardItemModel();
     m_pGoModel = new QStandardItemModel();
+
+    plot = new QCustomPlot(this);
+    plot->setMinimumWidth(400);
+    plot->setMinimumHeight(500);
+    plot->setInteractions(QCP::iRangeZoom|QCP::iRangeDrag);
+    colorMap = new QCPColorMap(plot->xAxis,plot->yAxis);
+    colorMap->data()->fill(0);
+   curve = new QCPCurve(plot->xAxis,plot->yAxis);
+
     valGrid->addWidget(m_ptbValView,0,0,2,2);
     valGrid->addWidget(m_ptbGoView, 2,0,1,2);
-    percGrid->addWidget(m_ptbPercView,0,0);
+    percGrid->addWidget(plot,0,0);
+    percGrid->addWidget(m_ptbPercView,1,0);
     valGb->setLayout(valGrid);
     percGb->setLayout(percGrid);
-    mainLayout->addWidget(valGb, 0,0,1,3);
-    mainLayout->addWidget(percGb,0,3,1,1);
-    mainLayout->addWidget(m_pbtnOkButton, 1, 0,1,1);
-    mainLayout->addWidget(m_pbtnParallel,1,1,1,1);
-    mainLayout->addWidget(m_pbtnPerc, 1,2,1,1);
-    mainLayout->addWidget(m_pbtnStats, 1,3,1,1);
+    splitter->addWidget(valGb);
+    splitter->addWidget(percGb);
+   // mainLayout->addWidget(valGb, 0,0,2,3);
+    //mainLayout->addWidget(percGb,0,3,2,1);
+    mainLayout->addWidget(splitter,0,0,2,4);
+    mainLayout->addWidget(m_pbtnOkButton, 2, 0,1,1);
+    mainLayout->addWidget(m_pbtnParallel,2,1,1,1);
+    mainLayout->addWidget(m_pbtnPerc, 2,2,1,1);
+    mainLayout->addWidget(m_pbtnStats, 2,3,1,1);
+    mainLayout->addWidget(m_pbtnSort,3,0,1,4);
     setLayout(mainLayout);
     connect(m_pbtnOkButton, SIGNAL(clicked()),this, SLOT(goClose()));
     connect(m_pbtnParallel, SIGNAL(clicked(bool)), this, SLOT(showParallelCords()));
     connect(m_pbtnPerc, SIGNAL(clicked()),this,SLOT(showPerc()));
     connect(m_pbtnStats, SIGNAL(clicked()),this, SLOT(showStats()));
+    connect(m_pbtnSort,SIGNAL(clicked()),this,SLOT(sort()));
 }
 
 void qBicWin::goClose()
@@ -74,7 +95,138 @@ void qBicWin::showPerc()
     win->setData(percVals,m_biclusters,m_biclusters->indexOf(m_bic));
     win->show();
 }
-void qBicWin::init(double **perc, QList<QStringList> *vals, QString Bic, QStringList *rowN, QStringList *colN, QStringList* bics, QStringList *goStats)
+
+void qBicWin::sort()
+{
+    QList<QStringList>* sortedVals = new QList<QStringList>();
+    QStringList list = m_bic.split("|");
+    QStringList rows = list[0].split(QRegExp("\\s+"));
+    rows.removeAll("");
+    QStringList cols = list[1].split(QRegExp("\\s+"));
+    cols.removeAll("");
+    QVector<int> iRows;
+    QVector<int> iCols;
+    for(int i=rows.size()-1;i>=0;i--)
+    {
+        sortedVals->push_front((*m_plValues)[rows.at(i).toInt()]);
+        iRows.push_back(rows[i].toInt());
+    }
+    for(int i=0; i< cols.size(); i++)
+    {
+        iCols.push_back(cols[i].toInt());
+    }
+    for(int i=0;i<rowC;i++)
+    {
+        if(!iRows.contains(i))
+            sortedVals->push_back((*m_plValues)[i]);
+        QStringList temp;
+        for(int j=iCols.size()-1; j>=0; j--)
+        {
+            temp.push_front((*sortedVals)[i].at(iCols[j]));
+        }
+        for(int j=0;j<colC;j++)
+        {
+            if(!iCols.contains(j))
+                temp.push_back((*sortedVals)[i].at(j));
+        }
+        (*sortedVals)[i] = temp;
+    }
+    for(int nV =0;nV<sortedVals->size();nV++)
+    {
+        QStringList row = (*sortedVals)[nV];
+        for(int nC = 0; nC<row.size();nC++)
+        {
+            QString value = row.at(nC);
+            double val = value.toDouble();
+           // qDebug() << val;
+            colorMap->data()->setCell(nC, nV, value.toDouble());
+        }
+    }
+    colorMap->rescaleDataRange(true);
+
+    QVector<double> x_1;
+    QVector<double> x_2;
+    x_1.append(0);
+    x_1.append(iRows.size());
+    x_1.append(iRows.size());
+    x_1.append(0);
+    x_1.append(0);
+
+    x_2.append(0);
+    x_2.append(0);
+    x_2.append(iCols.size());
+    x_2.append(iCols.size());
+    x_2.append(0);
+
+    curve->setPen(QPen(Qt::white));
+  //  curve->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssDisc, 5));
+
+    curve->setData(x_2,x_1);
+
+
+    plot->replot();
+}
+
+void qBicWin::draw()
+{
+    if(m_plValues->size()>0)
+    {
+        plot->xAxis->setRange(0, colC);
+        plot->yAxis->setRange(0, rowC);
+        plot->yAxis->setRangeReversed(true);
+        plot->xAxis->setNumberFormat("f");
+        plot->yAxis->setNumberFormat("f");
+        plot->xAxis->setNumberPrecision(0);
+        plot->yAxis->setNumberPrecision(0);
+
+      //  plot->axisRect()->setRangeZoom(Qt::Vertical);
+       //plot->axisRect()->setRangeDrag(Qt::Vertical);
+        colorMap->data()->setSize(colC,rowC);
+        colorMap->data()->setRange(QCPRange(0, colC),QCPRange(0,rowC));
+        QCPColorGradient* grad;
+        if(MainWindow::gradientType!=100)
+        {
+            grad = new QCPColorGradient((QCPColorGradient::GradientPreset)MainWindow::gradientType);
+        }
+        else
+        {
+            grad = new QCPColorGradient(QCPColorGradient::gpSpectrum);
+            grad->clearColorStops();
+            grad->setColorStopAt(0,Qt::red);
+            grad->setColorStopAt(0.5,Qt::black);
+            grad->setColorStopAt(1, Qt::green);
+            grad->setColorInterpolation(QCPColorGradient::ciRGB);
+
+        }
+
+        colorMap->setGradient(*grad);
+        colorMap->setTightBoundary(true);
+        colorMap->setInterpolate(false);
+        colorMap->data()->fill(0);
+
+        if(MainWindow::dataScaleType==0)
+            colorMap->setDataScaleType(QCPAxis::ScaleType::stLogarithmic);
+        else
+            colorMap->setDataScaleType(QCPAxis::ScaleType::stLinear);
+
+        for(int nV =0;nV<m_plValues->size();nV++)
+        {
+            QStringList row = (*m_plValues)[nV];
+            for(int nC = 0; nC<row.size();nC++)
+            {
+                QString value = row.at(nC);
+                double val = value.toDouble();
+               // qDebug() << val;
+                colorMap->data()->setCell(nC, nV, value.toDouble());
+            }
+        }
+        colorMap->rescaleDataRange(true);
+        plot->xAxis->setRange(0, 100);
+        plot->yAxis->setRange(0, 100);
+        plot->replot();
+    }
+}
+void qBicWin::init(double **perc, QList<QStringList> *vals, QString Bic, QStringList *rowN, QStringList *colN, QStringList* bics, QStringList *goStats, int rowsn, int colsn)
 {
     m_plValues = vals;
     percVals = perc;
@@ -83,6 +235,8 @@ void qBicWin::init(double **perc, QList<QStringList> *vals, QString Bic, QString
     colNames = colN;
     m_plGoStats = goStats;
     m_biclusters = bics;
+    colC = colsn;
+    rowC = rowsn;
     QStringList list = m_bic.split("|");
     QStringList rows = list[0].split(QRegExp("\\s+"));
     rows.removeAll("");
@@ -189,7 +343,7 @@ void qBicWin::init(double **perc, QList<QStringList> *vals, QString Bic, QString
         }
         m_ptbGoView->setModel(m_pGoModel);
     }
-
+    draw();
 }
 
 

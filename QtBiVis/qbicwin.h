@@ -6,18 +6,21 @@
 #include <QTableView>
 #include <QPushButton>
 #include <QGroupBox>
+#include <QSplitter>
 #include <QStandardItemModel>
 #include <QStandardItem>
 #include <QSortFilterProxyModel>
 #include <QGridLayout>
 #include "qparallelplot.h"
+#include "qcustomplot.h"
+
 class qGoFilter;
 class qBicWin : public QWidget
 {
     Q_OBJECT
 public:
     explicit qBicWin(QWidget *parent = 0);
-    void init(double** perc, QList<QStringList>* vals, QString Bic, QStringList* rowN, QStringList* colN, QStringList* bics, QStringList* goStats);
+    void init(double** perc, QList<QStringList>* vals, QString Bic, QStringList* rowN, QStringList* colN, QStringList* bics, QStringList* goStats, int rowsn, int colsn);
 
 signals:
     void closed();
@@ -26,7 +29,9 @@ public slots:
     void showParallelCords();
     void showStats();
     void showPerc();
+    void sort();
 protected:
+    void draw();
     QPushButton* m_pbtnOkButton;
     QTableView* m_ptbValView;
     QPushButton* m_pbtnParallel;
@@ -35,6 +40,7 @@ protected:
     QTableView* m_ptbGoView;
     QPushButton* m_pbtnStats;
     QPushButton* m_pbtnPerc;
+    QPushButton* m_pbtnSort;
     QStringList* colNames;
     QStringList* rowNames;
     QString m_bic;
@@ -44,6 +50,12 @@ protected:
     double** percVals;
     QList<QStringList>* m_plValues;
     QStringList* m_plGoStats;
+    QCustomPlot* plot;
+    QCPColorMap* colorMap;
+    QCPCurve *curve;
+    int colC;
+    int rowC;
+
 };
 class qGoFilter : public QSortFilterProxyModel
 {

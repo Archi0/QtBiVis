@@ -22,7 +22,8 @@ SOURCES += main.cpp\
     qsigmawindow.cpp \
     qbicstats.cpp \
     qbicwin.cpp \
-    qparallelplot.cpp
+    qparallelplot.cpp \
+    optionsdialog.cpp
 
 HEADERS  += mainwindow.h \
     qbiclusterwindow.h \
@@ -33,7 +34,8 @@ HEADERS  += mainwindow.h \
     qsigmawindow.h \
     qbicstats.h \
     qbicwin.h \
-    qparallelplot.h
+    qparallelplot.h \
+    optionsdialog.h
 QT += printsupport
 
 INCLUDEPATH += "E:\Programowanie\boost_1_60_0"

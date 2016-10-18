@@ -77,7 +77,6 @@ void qSigmaWindow::setData(QList<QStringList> *values, QString Bicluster)
     QCPItemStraightLine* line = new QCPItemStraightLine(plot);
     line->point1->setCoords(0,val);
     line->point2->setCoords(max, val);
-    plot->addItem(line);
     plot->replot();
 
 }
