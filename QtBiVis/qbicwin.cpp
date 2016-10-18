@@ -205,9 +205,9 @@ void qBicWin::draw()
         colorMap->data()->fill(0);
 
         if(MainWindow::dataScaleType==0)
-            colorMap->setDataScaleType(QCPAxis::ScaleType::stLogarithmic);
+            colorMap->setDataScaleType(QCPAxis::stLogarithmic);
         else
-            colorMap->setDataScaleType(QCPAxis::ScaleType::stLinear);
+            colorMap->setDataScaleType(QCPAxis::stLinear);
 
         for(int nV =0;nV<m_plValues->size();nV++)
         {

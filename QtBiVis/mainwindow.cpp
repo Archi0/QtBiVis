@@ -825,7 +825,7 @@ void MainWindow::drawHeatmap()
         colorMap->setTightBoundary(true);
         colorMap->setInterpolate(false);
         colorMap->data()->fill(0);
-        colorMap->setDataScaleType(QCPAxis::ScaleType::stLogarithmic);
+        colorMap->setDataScaleType(QCPAxis::stLogarithmic);
         for(int nV =0;nV<m_plValues->size();nV++)
         {
             QStringList row = (*m_plValues)[nV];
@@ -916,9 +916,9 @@ void MainWindow::setOptions()
 
 
         if(optDialog->getDataScaleType()==0)
-            colorMap->setDataScaleType(QCPAxis::ScaleType::stLogarithmic);
+            colorMap->setDataScaleType(QCPAxis::stLogarithmic);
         else
-            colorMap->setDataScaleType(QCPAxis::ScaleType::stLinear);
+            colorMap->setDataScaleType(QCPAxis::stLinear);
         colorMap->rescaleDataRange(true);
         colorScale->setGradient(*grad);
         colorScale->setDataRange(colorMap->dataRange());
