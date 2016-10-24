@@ -30,6 +30,8 @@ public slots:
     void showStats();
     void showPerc();
     void sort();
+    void contextPlot(QPoint pos);
+    void saveHeat();
 protected:
     void draw();
     QPushButton* m_pbtnOkButton;

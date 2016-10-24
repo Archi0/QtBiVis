@@ -66,6 +66,8 @@ public slots:
     void setRange(QCPRange newRange);
     void setGoText(QString text);
     void setOptions();
+    void contextPlot(QPoint pos);
+    void saveHeat();
 private:
 
     bool find(CellData* input, QString Bic);

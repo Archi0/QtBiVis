@@ -20,7 +20,7 @@ class qParallelPlot : public qPlotWindow
 public:
     qParallelPlot();
     virtual void setData();
-    void setData(QList<QStringList>* values, QString Bicluster);
+    void setData(QList<QStringList>* values, QString Bicluster, QCPRange range);
 };
 
 #endif // QPARALLELPLOT_H

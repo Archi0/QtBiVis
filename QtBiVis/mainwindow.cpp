@@ -16,7 +16,7 @@ MainWindow::MainWindow(QWidget *parent)
     resize(1024,768);
     setWindowTitle(tr("QtBiVis"));
     m_plValues = new QList<QStringList>();
-    m_pvData = new QVector<CellData* >();
+   // m_pvData = new QVector<CellData* >();
     m_pMainLayout = new QGridLayout(this);
     m_pMainLayout->addWidget(createPathGroup(),0,0,1,1);
     m_pMainLayout->addWidget(createPaintGroup(),1,0,1,2);
@@ -28,6 +28,7 @@ MainWindow::MainWindow(QWidget *parent)
     m_pmCellMap = new QMap<QString, CellData*>();
     m_pmGOMap = new QMap<QString, QStringList>();
     m_bicWin = new qBicWin();
+    plot->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(m_pbtnBrowse, SIGNAL(clicked()), this, SLOT(browseFile()));
     connect(m_pbtnDraw, SIGNAL(clicked()),this,SLOT(draw()));
     connect(m_pbtnBrowseMain, SIGNAL(clicked()), this, SLOT(browseMainFile()));
@@ -40,6 +41,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_pbtnParser, SIGNAL(clicked()), this, SLOT(testStats()));
     connect(m_pleGoDef, SIGNAL(textChanged(QString)), this, SLOT(setGoText(QString)));
     connect(m_pbtnHeatSett, SIGNAL(clicked()),this, SLOT(setOptions()));
+    connect(plot, SIGNAL(customContextMenuRequested(QPoint)),this, SLOT(contextPlot(QPoint)));
    // connect(plot->xAxis, SIGNAL(rangeChanged(QCPRange)), this, SLOT(setRange(QCPRange)));
    // connect(m_pBiclusterWin, SIGNAL(closed()), this, SLOT(closeBiclusterWin()));
     setLayout(m_pMainLayout);
@@ -145,6 +147,8 @@ void MainWindow::browseFile()
     m_pvData->clear();
     m_pmCountMap->clear();
     m_pmCellMap->clear();
+    m_pmGOMap->clear();
+
     QStringList fileNames = QFileDialog::getOpenFileNames(this,tr("Open Data"), "./");
     for(int nF = 0; nF < fileNames.size(); nF++)
     {
@@ -267,7 +271,6 @@ void MainWindow::browseFile()
     }
     //m_psmBicListModel->setStringList(*m_plBiclusters);
     prepareTableView();
-    generateCountMap();
     m_pbtnDraw->setEnabled(true);
     m_pbtnCalc->setEnabled(true);
     m_pbtnMore->setEnabled(true);
@@ -297,6 +300,7 @@ void MainWindow::showStats()
 
 void MainWindow::quantityStats()
 {
+    generateCountMap();
     QVector<int> size(m_plBiclusters->size()), value(m_plBiclusters->size()), quantity(m_plBiclusters->size());
     QVector<double> result(m_plBiclusters->size()), uniques;
     QStringList tempBic;
@@ -841,8 +845,8 @@ void MainWindow::drawHeatmap()
         colorScale->setDataRange(colorMap->dataRange());
         colorScale->setDataScaleType(colorMap->dataScaleType());
 
-        plot->xAxis->setRange(0, 100);
-        plot->yAxis->setRange(0, 100);
+        plot->xAxis->setRange(0, 10);
+        plot->yAxis->setRange(0, 10);
         plot->replot();
     }
 }
@@ -927,6 +931,23 @@ void MainWindow::setOptions()
     }
     delete optDialog;
     plot->replot();
+}
+
+void MainWindow::contextPlot(QPoint pos)
+{
+    QMenu *menu = new QMenu(this);
+    menu->setAttribute(Qt::WA_DeleteOnClose);
+
+    menu->addAction("Save heatmap", this, SLOT(saveHeat()));
+
+    menu->popup(plot->mapToGlobal(pos));
+}
+
+void MainWindow::saveHeat()
+{
+    QString fileName = QFileDialog::getSaveFileName(this, "Save graph", "", "*.pdf");
+    fileName = fileName + ".pdf";
+    plot->savePdf(fileName, 0, 0);
 }
 
 QGroupBox* MainWindow::createPaintGroup()

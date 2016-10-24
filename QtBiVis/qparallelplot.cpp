@@ -1,15 +1,17 @@
 #include "qparallelplot.h"
-
+#include <limits>
 qParallelPlot::qParallelPlot()
 {
     resize(400,400);
     setWindowTitle(tr("Parallel Coordinates"));
+    plot->setInteractions(QCP::iRangeZoom | QCP::iRangeDrag);
+    plot->axisRect()->setRangeZoom(Qt::Vertical|Qt::Horizontal);
 }
 void qParallelPlot::setData()
 {
 
 }
-void qParallelPlot::setData(QList<QStringList> *values, QString Bicluster)
+void qParallelPlot::setData(QList<QStringList> *values, QString Bicluster, QCPRange range)
 {
     QStringList split = Bicluster.split("|");
     QString tempRows = split[0];
@@ -23,9 +25,9 @@ void qParallelPlot::setData(QList<QStringList> *values, QString Bicluster)
     plot->yAxis->setLabel("Values");
     plot->xAxis->setNumberFormat("f");
     plot->xAxis->setNumberPrecision(0);
-    plot->axisRect()->setRangeZoom(Qt::Vertical);
-    double min, max,maxx;
-    min=0; max=0;maxx=0;
+    //plot->axisRect()->setRangeZoom(Qt::Vertical);
+    double min, max,maxx, minx;
+    min=INT_MAX; max=0;maxx=0;minx=INT_MAX;
     for(int i=0; i<rows.size();i++)
     {
         plot->addGraph(plot->xAxis,plot->yAxis);
@@ -41,10 +43,12 @@ void qParallelPlot::setData(QList<QStringList> *values, QString Bicluster)
                 max=y[j];
             if(x[j]>maxx)
                 maxx=x[j];
+            if(x[j]<minx)
+                minx=x[j];
         }
         plot->graph(i)->setData(x,y);
     }
-    plot->xAxis->setRange(0, maxx);
+    plot->xAxis->setRange(minx, maxx);
     plot->yAxis->setRange(min,max);
 }
 

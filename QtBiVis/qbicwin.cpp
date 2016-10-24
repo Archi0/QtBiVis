@@ -62,6 +62,8 @@ qBicWin::qBicWin(QWidget *parent) : QWidget(parent)
     mainLayout->addWidget(m_pbtnStats, 2,3,1,1);
     mainLayout->addWidget(m_pbtnSort,3,0,1,4);
     setLayout(mainLayout);
+    plot->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(plot, SIGNAL(customContextMenuRequested(QPoint)),this, SLOT(contextPlot(QPoint)));
     connect(m_pbtnOkButton, SIGNAL(clicked()),this, SLOT(goClose()));
     connect(m_pbtnParallel, SIGNAL(clicked(bool)), this, SLOT(showParallelCords()));
     connect(m_pbtnPerc, SIGNAL(clicked()),this,SLOT(showPerc()));
@@ -78,7 +80,7 @@ void qBicWin::goClose()
 void qBicWin::showParallelCords()
 {
     qParallelPlot* win = new qParallelPlot();
-    win->setData(m_plValues,m_bic);
+    win->setData(m_plValues,m_bic,colorMap->data()->valueRange());
     win->show();
 }
 
@@ -165,6 +167,24 @@ void qBicWin::sort()
 
 
     plot->replot();
+}
+
+void qBicWin::contextPlot(QPoint pos)
+{
+    QMenu *menu = new QMenu(this);
+    menu->setAttribute(Qt::WA_DeleteOnClose);
+
+    menu->addAction("Save heatmap", this, SLOT(saveHeat()));
+
+    menu->popup(plot->mapToGlobal(pos));
+}
+
+
+void qBicWin::saveHeat()
+{
+    QString fileName = QFileDialog::getSaveFileName(this, "Save graph", "", "*.pdf");
+    fileName = fileName + ".pdf";
+    plot->savePdf(fileName, 0, 0);
 }
 
 void qBicWin::draw()
