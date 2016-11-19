@@ -27,7 +27,7 @@ MainWindow::MainWindow(QWidget *parent)
     m_pmCountMap = new QMap<int, QVector<CellData*> >();
     m_pmCellMap = new QMap<QString, CellData*>();
     m_pmGOMap = new QMap<QString, QStringList>();
-    m_bicWin = new qBicWin();
+    m_bicWin = new QVector<qBicWin>();
     plot->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(m_pbtnBrowse, SIGNAL(clicked()), this, SLOT(browseFile()));
     connect(m_pbtnDraw, SIGNAL(clicked()),this,SLOT(draw()));
@@ -72,10 +72,11 @@ void MainWindow::prepareTableView()
     m_psmBicListModel->setRowCount(m_plBiclusters->size());
     m_psmBicListModel->setColumnCount(4);
     QStringList labels;
+    labels.append("Size");
     labels.append("GO:");
     labels.append("pvalue:");
     labels.append("pvalue 2:");
-    labels.append("Bicluster:");
+    labels.append("Bicluster");
     qDebug() << "Bics: " << QString::number(m_plBiclusters->size());
     qDebug() << "GO: " << QString::number(m_pmGOMap->size());
     for(int i =0; i< m_plBiclusters->size(); i++)
@@ -91,16 +92,28 @@ void MainWindow::prepareTableView()
             pval1 = temp[1];
             pval2 = temp[2];
         }
+        QStringList list =bicluster.split("|");
+        QStringList rows = list[0].split(QRegExp("\\s+"));
+        QStringList cols = list[1].split(QRegExp("\\s+"));
+        int size = rows.size() * cols.size();
+        QStandardItem *sizeItem = new QStandardItem(QString::number(size));
         QStandardItem *goItem = new QStandardItem(go);
         QStandardItem *p1Item = new QStandardItem(pval1);
         QStandardItem *p2Item = new QStandardItem(pval2);
         QStandardItem *bicItem = new QStandardItem(bicluster);
-        m_psmBicListModel->setItem(i,0,goItem);
-        m_psmBicListModel->setItem(i, 1, p1Item);
-        m_psmBicListModel->setItem(i,2,p2Item);
-        m_psmBicListModel->setItem(i,3,bicItem);
+        m_psmBicListModel->setItem(i,0,sizeItem);
+        m_psmBicListModel->setItem(i,1,goItem);
+        m_psmBicListModel->setItem(i, 2, p1Item);
+        m_psmBicListModel->setItem(i,3,p2Item);
+        m_psmBicListModel->setItem(i,4,bicItem);
         m_psmBicListModel->setHorizontalHeaderLabels(labels);
     }
+
+    m_plvBicList->setColumnWidth(0, 35);
+    m_plvBicList->setColumnWidth(1, 75);
+    m_plvBicList->setColumnWidth(2, 60);
+    m_plvBicList->setColumnWidth(3, 60);
+    m_plvBicList->setColumnWidth(4, 75);
 }
 bool MainWindow::find(CellData *input, QString Bic)
 {
@@ -733,7 +746,7 @@ void MainWindow::selectedList(QModelIndex index)
    QModelIndexList list = m_plvBicList->selectionModel()->selectedIndexes();
 
    QStringList slist;
-   if(index.column() == 3)
+   if(index.column()>3)
    {
        foreach(const QModelIndex &index, list)
        {
@@ -744,9 +757,9 @@ void MainWindow::selectedList(QModelIndex index)
        {
           // drawBicluster(slist[0]);
        }
-
-        m_bicWin->init(percVals,m_plValues,slist.last(),m_plRowNames, m_plColNames, m_plBiclusters, &(*m_pmGOMap)[slist.last()], rowC, colC);
-        m_bicWin->show();
+        qBicWin* win = new qBicWin();
+        win->init(percVals,m_plValues,slist.last(),m_plRowNames, m_plColNames, m_plBiclusters, &(*m_pmGOMap)[slist.last()], rowC, colC);
+        win->show();
    }
 
 }

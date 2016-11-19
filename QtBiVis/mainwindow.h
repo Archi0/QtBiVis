@@ -114,7 +114,7 @@ private:
     QList<QStringList>* m_plValues;
     QCPColorMap *colorMap;
     QCPColorScale *colorScale;
-    qBicWin* m_bicWin;
+    QVector<qBicWin>* m_bicWin;
     OptionsDialog* optDialog;
     qGoFilter* goFilter;
 
